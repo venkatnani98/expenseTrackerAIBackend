@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
-import { generateTripInsights, generateChatReply } from "../services/ai";
-import { InsightsRequestSchema, ChatRequestSchema } from "../types";
+import { generateTripInsights, generateChatReply } from "../services/ai.ts";
+import { InsightsRequestSchema, ChatRequestSchema } from "../types/index.ts";
 
 export const insightsRouter = Router();
 

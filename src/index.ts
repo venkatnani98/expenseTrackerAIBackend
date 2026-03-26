@@ -4,7 +4,7 @@ import cors from "cors";
 import path from "path";
 
 // 1. IMPORT YOUR ROUTER
-import { insightsRouter } from "./routes/insights";
+import { insightsRouter } from "./routes/insights.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
