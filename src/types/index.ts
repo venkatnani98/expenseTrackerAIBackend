@@ -38,3 +38,19 @@ export interface AiSuggestion {
   description: string;
   priority: "save_now" | "good_option" | "watch";
 }
+
+export const ChatMessageSchema = z.object({
+  role: z.enum(["user", "assistant"]),
+  content: z.string(),
+});
+
+export const ChatRequestSchema = z.object({
+  messages: z.array(ChatMessageSchema),
+  budget: z.number(),
+  totalSpent: z.number(),
+  currency: z.string().optional().default("USD"),
+  expenses: z.array(z.any()), // You can use ExpenseItemSchema here if it matches
+  settings: z.record(z.any()).optional(),
+});
+
+export type ChatRequest = z.infer<typeof ChatRequestSchema>;
