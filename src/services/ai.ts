@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod";
-import { SuggestionSchema, AiSuggestion, InsightsRequest, ChatRequest } from "../types";
+import { SuggestionSchema, AiSuggestion, InsightsRequest, ChatRequest } from "../types/index.js";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
