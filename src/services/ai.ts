@@ -115,18 +115,18 @@ function getFallbackSuggestions(): AiSuggestion[] {
 }
 
 
-export async function generateChatReply(params: ChatRequest): Promise<string> {
-  // 1. Format context data
+export async function generateChatReply(params: ChatRequest & { tripIntel: any }): Promise<string> {
   const remaining = params.budget - params.totalSpent;
   const pct = params.budget > 0 ? Math.round((params.totalSpent / params.budget) * 100) : 0;
   
-  // Format the last 5 expenses
   const recentExpenses = params.expenses
     .slice(-5)
     .map((e) => `- ${e.category}: ${e.amount} — ${e.note || 'no note'}`)
     .join('\n');
 
-  // 2. Build the System Prompt safely on the server
+  const intel = params.tripIntel;
+
+  // Build the System Prompt with the concrete intel data
   const systemPrompt = `You are a smart travel budget advisor inside the ExpenseTracker AI app.
 Keep responses concise (2–4 sentences max). Be helpful, practical, and friendly.
 
@@ -136,18 +136,22 @@ TRIP CONTEXT:
 - Remaining: ${remaining} ${params.currency}
 - Trip Days: ${params.settings?.tripDays ?? 'unknown'}
 - Location: ${params.settings?.travelLocation || 'not set'}
+- Days Passed: ${intel?.daysPassed ?? 'unknown'}
+- Days Remaining: ${intel?.daysRemaining ?? 'unknown'}
+- Ideal Daily Budget: ${intel?.idealDailyBudget?.toFixed(2) ?? 'unknown'} ${params.currency}
+- Actual Daily Spend: ${intel?.actualDailySpend?.toFixed(2) ?? 'unknown'} ${params.currency}
+- Burn Rate Risk: ${intel?.riskLevel ?? 'unknown'}
 
 RECENT EXPENSES (last 5):
 ${recentExpenses || 'No recent expenses.'}
 
 Answer the user's question about their trip spending based on the above context.`;
 
-  // 3. Call OpenAI (standard text completion, no Zod parsing needed here)
   const completion = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
       { role: "system", content: systemPrompt },
-      ...params.messages, // Append the conversation history sent from frontend
+      ...params.messages,
     ],
   });
 
