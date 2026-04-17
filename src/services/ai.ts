@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod";
-import { SuggestionSchema, AiSuggestion, InsightsRequest } from "../types";
+import { SuggestionSchema, AiSuggestion, InsightsRequest, ChatRequest } from "../types/index.js";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -112,4 +112,48 @@ function getFallbackSuggestions(): AiSuggestion[] {
       priority: "watch",
     },
   ];
+}
+
+
+export async function generateChatReply(params: ChatRequest & { tripIntel: any }): Promise<string> {
+  const remaining = params.budget - params.totalSpent;
+  const pct = params.budget > 0 ? Math.round((params.totalSpent / params.budget) * 100) : 0;
+  
+  const recentExpenses = params.expenses
+    .slice(-5)
+    .map((e) => `- ${e.category}: ${e.amount} — ${e.note || 'no note'}`)
+    .join('\n');
+
+  const intel = params.tripIntel;
+
+  // Build the System Prompt with the concrete intel data
+  const systemPrompt = `You are a smart travel budget advisor inside the ExpenseTracker AI app.
+Keep responses concise (2–4 sentences max). Be helpful, practical, and friendly.
+
+TRIP CONTEXT:
+- Total Budget: ${params.budget} ${params.currency}
+- Total Spent: ${params.totalSpent} ${params.currency} (${pct}%)
+- Remaining: ${remaining} ${params.currency}
+- Trip Days: ${params.settings?.tripDays ?? 'unknown'}
+- Location: ${params.settings?.travelLocation || 'not set'}
+- Days Passed: ${intel?.daysPassed ?? 'unknown'}
+- Days Remaining: ${intel?.daysRemaining ?? 'unknown'}
+- Ideal Daily Budget: ${intel?.idealDailyBudget?.toFixed(2) ?? 'unknown'} ${params.currency}
+- Actual Daily Spend: ${intel?.actualDailySpend?.toFixed(2) ?? 'unknown'} ${params.currency}
+- Burn Rate Risk: ${intel?.riskLevel ?? 'unknown'}
+
+RECENT EXPENSES (last 5):
+${recentExpenses || 'No recent expenses.'}
+
+Answer the user's question about their trip spending based on the above context.`;
+
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [
+      { role: "system", content: systemPrompt },
+      ...params.messages,
+    ],
+  });
+
+  return completion.choices[0]?.message?.content || "Sorry, I could not generate a response.";
 }
